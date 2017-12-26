@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from skimage.feature import hog
+from scipy.ndimage.measurements import label
 
 # NOTE
 # All these functions are very similar to what has been taught in class. The code will look similar to lesson code
@@ -92,7 +93,9 @@ def find_cars(img, ystart, ystop,
               scale, svc, X_scaler, orient,
               pix_per_cell, cell_per_block,
               cspace, hog_channel='ALL',
+              spatial_transform=True,
               spatial_size=(32, 32),
+              hist_transform=True,
               hist_bins=32
               ):
     draw_img = np.copy(img)
@@ -147,6 +150,7 @@ def find_cars(img, ystart, ystop,
         for yb in range(nysteps):
             ypos = yb*cells_per_step
             xpos = xb*cells_per_step
+            all_features = []
             # Extract HOG for this patch
             if hog_channel == 'ALL':
                 hog_feat1 = hog1[ypos:ypos+nblocks_per_window, xpos:xpos+nblocks_per_window].ravel()
@@ -163,12 +167,19 @@ def find_cars(img, ystart, ystop,
             subimg = cv2.resize(ctrans_tosearch[ytop:ytop+window, xleft:xleft+window], (64,64))
 
             # Get color features
-            spatial_features = bin_spatial(subimg, size=spatial_size)
-            hist_features = color_hist(subimg, nbins=hist_bins)
+            if spatial_transform:
+                spatial_features = bin_spatial(subimg, size=spatial_size)
+                all_features.append(spatial_features)
 
+            if hist_transform:
+                hist_features = color_hist(subimg, nbins=hist_bins)
+                all_features.append(hist_features)
+
+            all_features.append(hog_features)
+
+            all_features_tuple = tuple(all_features)
             # Scale features and make a prediction
-            test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
-            #test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
+            test_features = X_scaler.transform(np.hstack(all_features_tuple).reshape(1, -1))
             test_prediction = svc.predict(test_features)
 
             xbox_left = np.int(xleft*scale)
@@ -186,3 +197,77 @@ def find_cars(img, ystart, ystop,
 
     return all_boxes, car_boxes
 
+
+def run_sliding_window(scales, img, final_svc, X_scaler, final_orient,
+                       final_pix_per_cell, final_cell_per_block,
+                       final_cspace, hog_channel='ALL',
+                       spatial_transform=True,
+                       spatial_size=(32, 32),
+                       hist_transform=True,
+                       hist_bins=32):
+    # Given a series of scales, this method runs each one by find_cars method and collects
+    # all bounding boxes
+    final_all_boxes = []
+    final_car_boxes = []
+    for ystart, ystop, scale in scales:
+        all_boxes, car_boxes = find_cars(img, ystart, ystop,
+                                         scale, final_svc, X_scaler, final_orient,
+                                         final_pix_per_cell, final_cell_per_block,
+                                         final_cspace, hog_channel=hog_channel,
+                                         spatial_transform=spatial_transform,
+                                         spatial_size=spatial_size,
+                                         hist_bins=hist_bins,
+                                         hist_transform=hist_transform
+                                         )
+        final_all_boxes.extend(all_boxes)
+        final_car_boxes.extend(car_boxes)
+
+    return final_all_boxes, final_car_boxes
+
+# This method walks through each bounding box and draws rectangle on image
+def draw_bounding_boxes(img, bounding_boxes, color=(0,0,255)):
+    draw_img = np.copy(img)
+    for bounding_box in bounding_boxes:
+        cv2.rectangle(draw_img,(bounding_box[0][0], bounding_box[0][1]),
+                      (bounding_box[1][0], bounding_box[1][1]),color,6)
+    return draw_img
+
+# This is copied from lesson with slight modification
+def add_heat(heatmap, bounding_boxes):
+    # Iterate through list of bboxes
+    draw_img = np.copy(heatmap)
+    for bounding_box in bounding_boxes:
+        # Add += 1 for all pixels inside each bbox
+        # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+        draw_img[bounding_box[0][1]:bounding_box[1][1], bounding_box[0][0]:bounding_box[1][0]] += 1
+
+    # Return updated heatmap
+    return draw_img
+
+# This is copied from lesson with slight modification (make a copy instead of overwriting image)
+def apply_threshold(heatmap, threshold):
+    draw_img = np.copy(heatmap)
+    # Zero out pixels below the threshold
+    draw_img[heatmap <= threshold] = 0
+    # Return thresholded map
+    return draw_img
+
+def get_labels(heatmap):
+    return label(heatmap)
+
+# This code is copied from lesson with no modifications.
+def draw_labeled_bboxes(draw_img, labels):
+    img = np.copy(draw_img)
+    # Iterate through all detected cars
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        # Draw the box on the image
+        cv2.rectangle(img, bbox[0], bbox[1], (0,255,0), 10)
+    # Return the image
+    return img
