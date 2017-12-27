@@ -56,11 +56,11 @@ Exploration and trials for different HOG parameters can be found in **Step 2.1 -
  
 - Here are the results of Hog transform on few training (car) images. Each column is hog transform in one of the three channel
 
-![Hog 9][Hog 9]
+![Hog 9][hog9]
 
 - Here are the results of Hog transform on few training (car) images with orientation of 11. Each column is hog transform in one of the three channel
 
-![Hog 11][Hog 11]
+![Hog 11][hog11]
 
 
 In order to help exploring various transformations, i defined the method `extract_features` in [transforms.py](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/transforms.py).
@@ -135,12 +135,13 @@ Here I tried various thresholds and scales and printed out bounding boxes and de
 
 ```
 Each tuple in this list indicate (ystart, ystop, scale_factor
-[(360, 560, 1.35), (380, 600, 1.85), (450, 680, 2.25)]
+[(360, 520, 1.35), (380, 550, 1.5), 
+                       (400, 600, 1.75), (400, 600, 1.85), 
+                       (450, 680, 2.25), (450, 680, 2.15)]
 
 ```
-Intuition is. Cars in top half of image are far away from view and are usually smaller in size.
-Cars in middle of frame are slightly bigger. And cars in lower frame are bigger
-from field of view.
+Intuition is, cars in top half of image are far away from view and are usually smaller in size. Cars in middle of frame are slightly bigger. And cars in lower frame are bigger
+from field of view. However on each of these windows use different scales to avoid misses.
 
 Check following image which shows cars detected on 5 random test images. There are odd false positives. But trying to eliminate
 them purely using scales was tough. Rather I had to rely on pipeline to keep track of previous frame results and remove detected anamolies
@@ -196,7 +197,8 @@ techniques I discussed earlier, this was still a issue. On the other hand, if I 
 of having few seconds in video with no boxes on real cars. In the end, I went in favor of detecting cars most of the time and making
 sure false positives are not too many. 
 
-This has tradeoff. You might notice in vide0, when white car emerges from behind (or exiting the frame), boxes are not drawn immediately. They are drawn only
+This is a tradeoff. You might notice in vide0, when white car emerges from behind (or exiting the frame), boxes are not drawn immediately. They are drawn only
 when 3/4th of car gets into visible spectrum. This I feel is a fair trade off. May be I will comeback to address this later. But
 for now I think the solution is reliable.
 
+Another possible approach is liminting the width of search space and eliminating cars on other side of the road.
