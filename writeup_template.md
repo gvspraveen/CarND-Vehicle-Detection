@@ -92,7 +92,7 @@ The method takes various combinations of transformation parameters. It applied *
 car and non car features. Using sklearn's `train_test_split`, I split training and testing group and measured accuracy. This method
 returns a tuple `svc, training_accuracy, training_time, X_scaler`. These are used later in the project.
 
-Finally after playing around with various parameter combinations in section **Step 2.3 - Test various parameter configurations**, I finally decided using these parameters.
+Finally after playing around with various parameter combinations in section **Step 2.3 - Test various parameter configurations**, I finally decided to these parameters.
 
 ```
 final_cspace='YUV'
@@ -107,7 +107,7 @@ final_cell_per_block= 2
 final_hog_channel= 'ALL'
 ```
 
-This model yelded accuracy of 99%.
+This model yelded accuracy of 99.2%.
 
 ### Sliding Window Search
 
@@ -159,7 +159,8 @@ Here's a [link to my video result](./project_video_out.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-For pipeline, I defined a class pipeline. This class processes each frame. Internally it keeps track of bounding boxes identified in previous frames.
+For pipeline, I defined a class - `Pipeline`. This class processes each frame. Internally it keeps track of heatmaps in previous frames (running average of past n frames).
+
 In order to even out false positives and wobbly boxes, I explored multiple options.
 
 1. Keep track of bounding boxes from last `n` frames. When applying heatmap for any frame using bounding boxes from previous `n` frames. 
@@ -191,14 +192,11 @@ Here is example of three successive frames with their heatmap in pipelines (usin
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-The biggest problem for me was balancing and tuning my parameters between missing real cars vs false negatives. If I over correct in favor
-of detecting 100% of time (every second), then I run into problem of false negative. Even with smoothening and false negative filtering
-techniques I discussed earlier, this was still a issue. On the other hand, if I am too sensitive to false negatives, then I run into risk
-of having few seconds in video with no boxes on real cars. In the end, I went in favor of detecting cars most of the time and making
-sure false positives are not too many. 
+The biggest problem for me was balancing and tuning my parameters between missing real cars vs false positive. If I over correct in favor
+of detecting 100% of time (every frame), then I run into problem of too many false positives. Even with smoothening and false positives filtering
+techniques I discussed earlier, this was still a issue. On the other hand, if I am too sensitive to false positives, then I run into risk
+of having few seconds in video with no boxes on real cars. In the end, I went in favor of detecting cars most of the time and making sure false positives are not too many. 
 
-This is a tradeoff. You might notice in vide0, when white car emerges from behind (or exiting the frame), boxes are not drawn immediately. They are drawn only
-when 3/4th of car gets into visible spectrum. This I feel is a fair trade off. May be I will comeback to address this later. But
-for now I think the solution is reliable.
+This is a tradeoff. You might notice in video, when white car emerges from behind (or exiting the frame), boxes are not drawn immediately. They are drawn only when 3/4th of car gets into visible spectrum. This I feel is a fair trade off. May be I will comeback to address this later. But for now I think the solution is reliable.
 
 Another possible approach is liminting the width of search space and eliminating cars on other side of the road.
