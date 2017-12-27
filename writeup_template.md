@@ -134,10 +134,10 @@ To test this I used **Step 3.2 - Run Sliding search on test images** in [Solutio
 Here I tried various thresholds and scales and printed out bounding boxes and detected cars. The list of scales that worked best for me are
 
 ```
-Each tuple in this list indicate (ystart, ystop, scale_factor
+Each tuple in this list indicate (ystart, ystop, scale_factor)
 [(360, 520, 1.35), (380, 550, 1.5), 
-                       (400, 600, 1.75), (400, 600, 1.85), 
-                       (450, 680, 2.25), (450, 680, 2.15)]
+(400, 600, 1.75), (400, 600, 1.85), 
+(450, 680, 2.25), (450, 680, 2.15)]
 
 ```
 Intuition is, cars in top half of image are far away from view and are usually smaller in size. Cars in middle of frame are slightly bigger. And cars in lower frame are bigger
@@ -154,7 +154,7 @@ in any individual frame.
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./project_video_out.mp4)
 
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
