@@ -18,6 +18,8 @@ The goals / steps of this project are the following:
 [hog9]: ./output_images/hog_9.jpg
 [hog11]: ./output_images/hog_11.jpg
 [scales_test]: ./output_images/scales_test.jpg
+[frames_heatmap]: ./output_images/frames_heatmap.jpg
+
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -176,6 +178,11 @@ false negatives also piled up.
 Using #3 Solved this issue. Even with #3 there were few false negatives but they were transient (disappear immediately).
 
 I have tuned and played around with these a lot. But in the end this is best result I could get. May be I will get to it in future.
+
+Here is example of three successive frames with their heatmap in pipelines (using approach just described)
+
+![Frames and Heatmap][frames_heatmap]
+
 
 ---
 
