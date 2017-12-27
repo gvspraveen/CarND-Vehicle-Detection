@@ -15,19 +15,21 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
-[image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[hog9]: ./output_images/hog_9.jpg
+[hog11]: ./output_images/hog_11.jpg
+[scales_test]: ./output_images/scales_test.jpg
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
 ---
+Code For Project is mostly in thes files
+
+- [Solution.ipynb](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/solution.ipynb). This contains most of the training and processing pipelines
+- [transforms.py](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/transforms.py). This file contains the code for transformations and feature extractions like HOG, spatial, histogram. Some of the
+code is from lessons. I added comments in the code to indicate reference to external sources (like lesson code snippets)
+- [im_utils.py](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/im_utils.py). This is used to centralize image reading logic.
+
 ### Writeup / README
 
 #### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
@@ -38,41 +40,113 @@ You're reading it!
 
 #### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+Actual code to extract hog features in method `get_hog_features` in file transforms.py](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/transforms.py).
 
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
+The code looks very similar to one taught in class (with only difference being split into multiple helper methods). 
 
-![alt text][image1]
-
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
-
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
-
-
-![alt text][image2]
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
+I first started by exploring car and non car test images. This can be found in **Step1 - Data Exploration** in [Solution.ipynb](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/solution.ipynb) notebook..
+ 
+Exploration and trials for different HOG parameters can be found in **Step 2.1 - Visualize Hog transformation** in [Solution.ipynb](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/solution.ipynb) notebook.
 
+ 
+- Here are the results of Hog transform on few training (car) images. Each column is hog transform in one of the three channel
+
+![Hog 9][Hog 9]
+
+- Here are the results of Hog transform on few training (car) images with orientation of 11. Each column is hog transform in one of the three channel
+
+![Hog 11][Hog 11]
+
+
+In order to help exploring various transformations, i defined the method `extract_features` in [transforms.py](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/transforms.py).
+This method is slight extension from code in lesson. It has various parameters to enable/disable spatial, hog, hist transforms. Also configuration for each
+of the transforms. It combines all these features and provides final feature vector.
+
+The best combination of the features is determined by using training classifier and comparing speed and accuracy of various combinations. This is explained in next section.
+
+I tried different combinations of feature extractions. The code for this is in section **Step 2.3 - Test various parameter configurations**.
+In this section I defined a helper method `test_parameters(option_dict)`. In next set of cells, you will notice how I tried this against
+different possible combinations and checking accuracy. 
+
+You will notice that I tuned various knobs
+
+```
+HOG orientation = 9, 11
+Spatial transform = Enabled, Disabled
+Spatial size = (16, 16), (32, 32)
+Hist transform = Enabled, Disabled
+Color Spaces = RGB, YUV, YCrCb
+
+```
+ 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+I defined a method `training_pipeline` in **Step 2.2 - Define a Tranining Pipeline**.
+
+The method takes various combinations of transformation parameters. It applied **Linear SVM** on them. I trained this on
+car and non car features. Using sklearn's `train_test_split`, I split training and testing group and measured accuracy. This method
+returns a tuple `svc, training_accuracy, training_time, X_scaler`. These are used later in the project.
+
+Finally after playing around with various parameter combinations in section **Step 2.3 - Test various parameter configurations**, I finally decided using these parameters.
+
+```
+final_cspace='YUV'
+final_spatial_size=(16, 16)
+final_spatial_transform= True
+final_hist_transform= True
+final_hist_bins= 32
+final_hog_transform= True
+final_orient= 11
+final_pix_per_cell= 8
+final_cell_per_block= 2
+final_hog_channel= 'ALL'
+```
+
+This model yelded accuracy of 99%.
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+For this I defined a helper method `find_cars` in [transforms.py](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/transforms.py).
 
-![alt text][image3]
+This method is based of lesson code. It takes ystart, ystop and scaling factor along with all other feature combinations explained in previous sections.
+
+As explained in lecture videos, instead of taking hog transform on every window, in this method we take HOG transform for whole image at once.
+Then using subsampling technique we extract HOG features for each sub window.
+I then run the trainined classfier for each window and return list of bounding boxes for positive car predictions.
+
+
+I wrote another wrapper method `run_sliding_window` which takes list of scales and parameters needed for `find_cars`. Internally this method just
+calls `find_cars` for each scale. It returns a concatenated list of bounding boxes for each scale.
+
+
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+To test this I used **Step 3.2 - Run Sliding search on test images** in [Solution.ipynb](https://github.com/gvspraveen/CarND-Vehicle-Detection/blob/master/solution.ipynb).
 
-![alt text][image4]
----
+Here I tried various thresholds and scales and printed out bounding boxes and detected cars. The list of scales that worked best for me are
+
+```
+Each tuple in this list indicate (ystart, ystop, scale_factor
+[(360, 560, 1.35), (380, 600, 1.85), (450, 680, 2.25)]
+
+```
+Intuition is. Cars in top half of image are far away from view and are usually smaller in size.
+Cars in middle of frame are slightly bigger. And cars in lower frame are bigger
+from field of view.
+
+Check following image which shows cars detected on 5 random test images. There are odd false positives. But trying to eliminate
+them purely using scales was tough. Rather I had to rely on pipeline to keep track of previous frame results and remove detected anamolies
+in any individual frame.
+
+![Cars detected][scales_test]
+
+
 
 ### Video Implementation
 
@@ -82,21 +156,26 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+For pipeline, I defined a class pipeline. This class processes each frame. Internally it keeps track of bounding boxes identified in previous frames.
+In order to even out false positives and wobbly boxes, I explored multiple options.
 
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
+1. Keep track of bounding boxes from last `n` frames. When applying heatmap for any frame using bounding boxes from previous `n` frames. 
+Finally define a threshold which makes sure boxes which appear 70% of `n` frames are considered.
 
-### Here are six frames and their corresponding heatmaps:
+2. Follow suggestion in [discussion board](https://discussions.udacity.com/t/wobbly-box-during-video-detection/231487/3). This basically
+scales our heatmap for given frame with heatmap uptil now. Also it adjusted current frame of image to average out with last n frames and then
+draws bounding boxes. **But this did not yield good results for me**
 
-![alt text][image5]
+3. Keep track of heatmaps from previous n frames. Take a average of heatmaps and then apply threshold.
 
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
+While #2 did not work well for me. #1 and #3 showed some good results and some issues.
 
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
+Specifically with #1, I had issue where sometimes fals positives carried over for too long. This was because I was piling on to bounding boxes. So
+false negatives also piled up. 
 
+Using #3 Solved this issue. Even with #3 there were few false negatives but they were transient (disappear immediately).
 
+I have tuned and played around with these a lot. But in the end this is best result I could get. May be I will get to it in future.
 
 ---
 
@@ -104,5 +183,13 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The biggest problem for me was balancing and tuning my parameters between missing real cars vs false negatives. If I over correct in favor
+of detecting 100% of time (every second), then I run into problem of false negative. Even with smoothening and false negative filtering
+techniques I discussed earlier, this was still a issue. On the other hand, if I am too sensitive to false negatives, then I run into risk
+of having few seconds in video with no boxes on real cars. In the end, I went in favor of detecting cars most of the time and making
+sure false positives are not too many. 
+
+This has tradeoff. You might notice in vide0, when white car emerges from behind (or exiting the frame), boxes are not drawn immediately. They are drawn only
+when 3/4th of car gets into visible spectrum. This I feel is a fair trade off. May be I will comeback to address this later. But
+for now I think the solution is reliable.
 

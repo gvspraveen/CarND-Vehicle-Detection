@@ -98,7 +98,6 @@ def find_cars(img, ystart, ystop,
               hist_transform=True,
               hist_bins=32
               ):
-    draw_img = np.copy(img)
     img = img.astype(np.float32)/255
 
     img_tosearch = img[ystart:ystop,:,:]
@@ -256,7 +255,7 @@ def get_labels(heatmap):
     return label(heatmap)
 
 # This code is copied from lesson with no modifications.
-def draw_labeled_bboxes(draw_img, labels):
+def draw_labeled_bboxes(draw_img, labels, size=8):
     img = np.copy(draw_img)
     # Iterate through all detected cars
     for car_number in range(1, labels[1]+1):
@@ -268,6 +267,6 @@ def draw_labeled_bboxes(draw_img, labels):
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
         # Draw the box on the image
-        cv2.rectangle(img, bbox[0], bbox[1], (0,255,0), 10)
+        cv2.rectangle(img, bbox[0], bbox[1], (0,255,0), size)
     # Return the image
     return img
